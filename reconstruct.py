@@ -34,7 +34,7 @@ def eight_point_algorithm(pts0, pts1, K):
     for i in range(0,N,1):
         # print(np.hstack([pts0[i,:]s,1]))
         x_1_aug = K_inv @ np.hstack([pts0[i,:],1])
-        # print(x_1_aug)
+        print(x_1_aug)
         x_2_aug = K_inv @ np.hstack([pts1[i,:],1])
         x_1, y_1, _ = x_1_aug
         x_2, y_2, _ = x_2_aug
@@ -43,10 +43,10 @@ def eight_point_algorithm(pts0, pts1, K):
     U, S, Vt = np.linalg.svd(A)
     
     E_s = Vt.T[:,-1]
-
-    E_s = E_s/np.linalg.norm(E_s)
+  
 
     E = np.reshape(E_s, (3,3))
+   
 
     U, S, Vt = np.linalg.svd(E)
 
@@ -56,7 +56,7 @@ def eight_point_algorithm(pts0, pts1, K):
     for combos in combinations:
         T = U @ R_z(combos[0]) @ np.diag([1,1,0]) @ U.T
         R = U @ R_z(combos[1]).T @ Vt
-        print(T)
+        print(R)
         print("-----"*10)
         Ts.append(unskew(T))
         Rs.append(R)
@@ -100,7 +100,7 @@ def triangulation(pts0, pts1, Rs, Ts, K):
 
 
     passed = [0,0,0,0]
-    for j in range(0,4,1):
+    for j in range(0,1,1):
         R = Rs[j]
         t = Ts[j]
         
@@ -114,6 +114,7 @@ def triangulation(pts0, pts1, Rs, Ts, K):
 
         for i in range(0,N,1):
             x_i, y_i = pts0[i,:]
+            
             A[0,:] = np.array([(P1[0,0] - P1[2,0] * x_i), (P1[0,1] - P1[2,1] * x_i), (P1[0,2] - P1[2,2] * x_i)])
             A[1,:] = np.array([(P1[1,0] - P1[2,0] * x_i), (P1[1,1] - P1[2,1] * x_i), (P1[1,2] - P1[2,2] * x_i)])
             b[0] = P1[2,3] * x_i - P1[0,3]
@@ -125,15 +126,25 @@ def triangulation(pts0, pts1, Rs, Ts, K):
             b[2] = P2[2,3] * x_i - P2[0,3]
             b[3] = P2[2,3] * y_i - P2[1,3]
         
-            # print(A)
+            print(A)
 
             # U, S, Vt = np.linalg.svd(A)
             # pts = Vt.T[:,-1]
-            A_pseudo_inv = np.linalg.inv(A.T @ A) @ A.T
-            pts = A_pseudo_inv @ b
-            print(pts)
-            print("Result:\n",A @ pts)
-            print("expected:\n", b)
+
+            # pts = np.linalg.lstsq(A,b)[0]
+            # A_pseudo_inv = np.linalg.inv(A.T @ A) @ A.T
+            # pts = A_pseudo_inv @ b
+            pts = np.linalg.pinv(A) @ b
+            print(j)
+            test = P1 @ np.vstack((pts,np.array([1])))
+            test = test/ test[2]
+
+            test2 = P2 @ np.vstack((pts,np.array([1])))
+            test2 = test2/ test2[2]
+            print("Result:\n",test)
+            print("Result:\n",test2)
+            print("expected:\n", pts0[i,:])
+            print("expected:\n", pts1[i,:])
             print("---"*40)
             
             if(pts[2] < 0): # Z < 0, means this R and t are wrong.
@@ -149,7 +160,7 @@ def triangulation(pts0, pts1, Rs, Ts, K):
             maxVal = passed[i]
             maxIdx = i
 
-    print( pts3d[:,:,maxIdx])
+    print( Rs[maxIdx], Ts[maxIdx])
 
     return Rs[maxIdx], Ts[maxIdx], pts3d[:,:,maxIdx]
 
