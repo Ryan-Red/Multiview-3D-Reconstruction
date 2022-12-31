@@ -43,7 +43,7 @@ def main():
         # note that this function does not filter out T-junction
         # it does not extract common junctions, neither
         juncs, lines, junc_ids = load_city_raw_wireframes(file_names)
-        vis_2d(images, juncs, lines)
+        # vis_2d(images, juncs, lines)
 
     # Finding Correspondence
     if args.sift:
@@ -71,7 +71,7 @@ def main():
     # If images is an array of more than two images, this visualization will show you 
     # subsequent image pairs one-by-one (first image and second image, then second image and third image,
     # and so on). Just press the space-bar to move to the next image.
-    vis_2d_lines(images, pts)
+    # vis_2d_lines(images, pts)
 
     # 2.1.2 Eight-Point Algorithm
     # use eight-point algorithm to recover the rotation and translation matrix

@@ -4,6 +4,10 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 cmap = plt.get_cmap('RdBu')
 
+def unskew(T):
+    return np.array([T[2,1], T[0,2], T[1,0]]).T
+
+
 def vis_3d(X):
     """
     Visualize the image and their 2D corresponding points
@@ -54,6 +58,31 @@ def visualize_reprojection(images, pts, points_3d, Rs, Ts, Ks):
     Side effects: Should create a plot of the provided images with the true feature
         locations and re-projected feature locations marked together.
     """
+    C = len(Rs) # number of cameras
+    N = points_3d.shape[0]
+    # print(pts.shape)
+    P = np.zeros((3,4))
+    reproj = np.zeros((2,N,2))
+    for i in range(0,C,1):
+
+        
+        P[0:3,0:3] = Rs[i]
+   
+        t = Ts[i]
+        P[:,3] = t
+
+        P = Ks[i] @ P
+        
+        for j in range(0,N,1):
+            augmented_3d = np.hstack((points_3d[j,:],np.array([1])))
+            # print(augmented_3d)
+            augmented_2d = P @ augmented_3d
+            reproj[i,j,:] = augmented_2d[0:2]
+    # print(reproj.shape)
+    vis_2d(images, reproj)
+
+
+
     raise NotImplementedError
 
 

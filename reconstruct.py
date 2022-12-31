@@ -58,7 +58,7 @@ def eight_point_algorithm(pts0, pts1, K):
         R = U @ R_z(combos[1]).T @ Vt
         print(T)
         print("-----"*10)
-        Ts.append(T)
+        Ts.append(unskew(T))
         Rs.append(R)
 
 
@@ -94,19 +94,22 @@ def triangulation(pts0, pts1, Rs, Ts, K):
     P1 = np.zeros((3,4))
     P2 = np.zeros((3,4))
 
-    P1[0:3,0:3] = K
-    P2[0:3,0:3] = K
+    P1[0:3,0:3] = np.eye(3)
+
+    P1 = K @ P1
+
 
     passed = [0,0,0,0]
     for j in range(0,4,1):
         R = Rs[j]
-        t = unskew(Ts[j])
+        t = Ts[j]
         
         P2[0:3,0:3] = R
-        print(P2[:,2])
+        # print(P2[:,2])
         P2[:,3] = t
+        print(P2)
         P2 = K @ P2 
-
+        
         
 
         for i in range(0,N,1):
@@ -117,26 +120,31 @@ def triangulation(pts0, pts1, Rs, Ts, K):
             b[1] = P1[2,3] * y_i - P1[1,3]
 
             x_i, y_i = pts1[i,:]
-            A[2,:] = np.array([(P2[0,0] - P1[2,0] * x_i), (P2[0,1] - P2[2,1] * x_i), (P2[0,2] - P2[2,2] * x_i)])
-            A[3,:] = np.array([(P2[1,0] - P1[2,0] * x_i), (P2[1,1] - P2[2,1] * x_i), (P2[1,2] - P2[2,2] * x_i)])
+            A[2,:] = np.array([(P2[0,0] - P2[2,0] * x_i), (P2[0,1] - P2[2,1] * x_i), (P2[0,2] - P2[2,2] * x_i)])
+            A[3,:] = np.array([(P2[1,0] - P2[2,0] * x_i), (P2[1,1] - P2[2,1] * x_i), (P2[1,2] - P2[2,2] * x_i)])
             b[2] = P2[2,3] * x_i - P2[0,3]
             b[3] = P2[2,3] * y_i - P2[1,3]
         
+            # print(A)
+
             A_pseudo_inv = np.linalg.inv(A.T @ A) @ A.T
             pts = A_pseudo_inv @ b
-            print(pts)
+           
             
             if(pts[2] < 0): # Z < 0, means this R and t are wrong.
-                passed[j] = -1
+                # print(pts[2])
+                passed[j] += -1
 
             pts3d[i,:,j] = pts[0:3].T
-
+    print(passed)
+    maxVal = -9999
+    maxIdx = 0
     for i in range(0,4,1):
-        if passed[i] == 0:
-            return Rs[i], Ts[i], pts3d[:,:,i]
-           
+        if passed[i] > maxVal:
+            maxVal = passed[i]
+            maxIdx = i
 
-    return Rs[0], Ts[0],pts3d[:,:,0]
+    return Rs[maxIdx], Ts[maxIdx], pts3d[:,:,maxIdx]
 
 
 
