@@ -42,7 +42,7 @@ def eight_point_algorithm(pts0, pts1, K):
     
     U, S, Vt = np.linalg.svd(A)
     
-    E_s = Vt[:,-1]
+    E_s = Vt.T[:,-1]
 
     E_s = E_s/np.linalg.norm(E_s)
 
@@ -127,9 +127,14 @@ def triangulation(pts0, pts1, Rs, Ts, K):
         
             # print(A)
 
+            # U, S, Vt = np.linalg.svd(A)
+            # pts = Vt.T[:,-1]
             A_pseudo_inv = np.linalg.inv(A.T @ A) @ A.T
             pts = A_pseudo_inv @ b
-           
+            print(pts)
+            print("Result:\n",A @ pts)
+            print("expected:\n", b)
+            print("---"*40)
             
             if(pts[2] < 0): # Z < 0, means this R and t are wrong.
                 # print(pts[2])
@@ -143,6 +148,8 @@ def triangulation(pts0, pts1, Rs, Ts, K):
         if passed[i] > maxVal:
             maxVal = passed[i]
             maxIdx = i
+
+    print( pts3d[:,:,maxIdx])
 
     return Rs[maxIdx], Ts[maxIdx], pts3d[:,:,maxIdx]
 

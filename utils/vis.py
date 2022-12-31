@@ -77,13 +77,14 @@ def visualize_reprojection(images, pts, points_3d, Rs, Ts, Ks):
             augmented_3d = np.hstack((points_3d[j,:],np.array([1])))
             # print(augmented_3d)
             augmented_2d = P @ augmented_3d
-            reproj[i,j,:] = augmented_2d[0:2]
+            reproj[i,j,:] = augmented_2d[0:2]/augmented_2d[2]
+            print(augmented_2d)
     # print(reproj.shape)
     vis_2d(images, reproj)
 
 
 
-    raise NotImplementedError
+    # raise NotImplementedError
 
 
 def vis_2d(images, juncs, lines=None):
