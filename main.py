@@ -77,6 +77,7 @@ def main():
     # use eight-point algorithm to recover the rotation and translation matrix
     Rs, Ts = eight_point_algorithm(pts[0], pts[1], intrinsic)
 
+
     # 2.1.3 Triangulation
     # at this point, you should be able to get four different rotation and translation matrix
     # however, there is only one of them placing all world points in front of the camera (positive depth)
