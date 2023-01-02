@@ -94,7 +94,7 @@ def vis_2d(images, juncs, lines=None):
     cmap = plt.get_cmap('RdBu')
     colors = cmap(np.linspace(0, 1, len(juncs[0])))
     max_col = 5
-    plt.figure(figsize=(24, 12))
+    # plt.figure(figsize=(24, 12))
     for i, (im, junc) in enumerate(zip(images, juncs)):
         plt.subplot(len(images) // 5 + 1, min(len(images), max_col), i + 1)
         plt.axis([0, im.shape[1], im.shape[0], 0])
