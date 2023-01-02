@@ -73,13 +73,19 @@ def visualize_reprojection(images, pts, points_3d, Rs, Ts, Ks):
 
         P = Ks[i] @ P
         
+        reproj_error = [0,0] # total reporjection error
+
         for j in range(0,N,1):
             augmented_3d = np.hstack((points_3d[j,:],np.array([1])))
             # print(augmented_3d)
             augmented_2d = P @ augmented_3d
             reproj[i,j,:] = augmented_2d[0:2]/augmented_2d[2]
-            print(augmented_2d)
+            
+
+
+
     # print(reproj.shape)
+    # vis_2d_lines(images, reproj)
     vis_2d(images, reproj)
 
 

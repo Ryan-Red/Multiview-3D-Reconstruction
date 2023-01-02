@@ -27,6 +27,7 @@ def eight_point_algorithm(pts0, pts1, K):
     """
     N = pts0.shape[0] #Number of points
     print(N)
+    # print(pts0)
 
     K_inv = np.linalg.inv(K)
 
@@ -59,8 +60,8 @@ def eight_point_algorithm(pts0, pts1, K):
     combinations = [(pi/2, pi/2), (pi/2, -pi/2), (-pi/2, pi/2), (-pi/2, -pi/2)]
     for combos in combinations:
         print(combos)
-        T = U @ R_z(combos[0]) @ np.diag([1,1,0]) @ U.T
-        R = U @ R_z(combos[1]).T @ Vt
+        T =  U @ R_z(combos[0]) @ np.diag([1,1,0]) @ U.T
+        R =  U @ R_z(combos[1]).T @ Vt
         print(R)
         print(unskew(T))
         print("-----"*10)
@@ -123,13 +124,13 @@ def triangulation(pts0, pts1, Rs, Ts, K):
             x_i, y_i = pts0[i,:]
             
             A[0,:] = np.array([(P0[0,0] - P0[2,0] * x_i), (P0[0,1] - P0[2,1] * x_i), (P0[0,2] - P0[2,2] * x_i)])
-            A[1,:] = np.array([(P0[1,0] - P0[2,0] * x_i), (P0[1,1] - P0[2,1] * x_i), (P0[1,2] - P0[2,2] * x_i)])
+            A[1,:] = np.array([(P0[1,0] - P0[2,0] * y_i), (P0[1,1] - P0[2,1] * y_i), (P0[1,2] - P0[2,2] * y_i)])
             b[0] = P0[2,3] * x_i - P0[0,3]
             b[1] = P0[2,3] * y_i - P0[1,3]
 
             x_i, y_i = pts1[i,:]
             A[2,:] = np.array([(P1[0,0] - P1[2,0] * x_i), (P1[0,1] - P1[2,1] * x_i), (P1[0,2] - P1[2,2] * x_i)])
-            A[3,:] = np.array([(P1[1,0] - P1[2,0] * x_i), (P1[1,1] - P1[2,1] * x_i), (P1[1,2] - P1[2,2] * x_i)])
+            A[3,:] = np.array([(P1[1,0] - P1[2,0] * y_i), (P1[1,1] - P1[2,1] * y_i), (P1[1,2] - P1[2,2] * y_i)])
             b[2] = P1[2,3] * x_i - P1[0,3]
             b[3] = P1[2,3] * y_i - P1[1,3]
         
@@ -149,16 +150,15 @@ def triangulation(pts0, pts1, Rs, Ts, K):
             if(pts[2] < 0): # Z < 0, means this R and t are wrong.
                 # print(pts[2])
                 passed[j] += -1
+                break
 
             pts3d[i,:] = pts[0:3].T
         list3Dpoints.append(pts3d)
-    print(passed)
-    maxVal = -9999
+
     maxIdx = 0
 
     for i in range(0,4,1):
-        if passed[i] > maxVal:
-            maxVal = passed[i]
+        if passed[i] == 0:
             maxIdx = i
 
     print( Rs[maxIdx], Ts[maxIdx])
