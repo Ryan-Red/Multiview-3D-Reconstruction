@@ -43,7 +43,7 @@ def main():
         # note that this function does not filter out T-junction
         # it does not extract common junctions, neither
         juncs, lines, junc_ids = load_city_raw_wireframes(file_names)
-        # vis_2d(images, juncs, lines)
+        vis_2d(images, juncs, lines)
 
     # Finding Correspondence
     if args.sift:
@@ -59,7 +59,7 @@ def main():
     # 2.1.1 Preliminary
     # at this point, you need to make sure that the extracted keypoints are the same as you expected
     # it is recommended to visualize it before passing it into the reconstruction system
-    vis_2d(images, pts)
+    # vis_2d(images, pts)
 
     # You need to make sure that the extracted keypoints are the same as you expected
     # It is recommended to visualize it before passing it into the reconstruction system

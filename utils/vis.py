@@ -15,7 +15,7 @@ def vis_3d(X):
     colors = cmap(np.linspace(0, 1, len(X)))
     fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
-    ax = fig.gca(projection='3d')
+    ax = fig.add_subplot(projection='3d')
     for i in range(X.shape[0]):
         ax.scatter(X[i, 0], X[i, 1], X[i, 2], c=colors[[i]], s=6)
     ax.set_xlabel('x axis')
@@ -58,11 +58,14 @@ def visualize_reprojection(images, pts, points_3d, Rs, Ts, Ks):
     Side effects: Should create a plot of the provided images with the true feature
         locations and re-projected feature locations marked together.
     """
-    C = len(Rs) # number of cameras
+    print(points_3d.shape)
+    C = pts.shape[0] # number of cameras
     N = points_3d.shape[0]
     # print(pts.shape)
     P = np.zeros((3,4))
-    reproj = np.zeros((2,N,2))
+    reproj = np.zeros((C,N,2))
+    reproj_error = 0 # total reporjection error
+    print(C)
     for i in range(0,C,1):
 
         
@@ -71,15 +74,17 @@ def visualize_reprojection(images, pts, points_3d, Rs, Ts, Ks):
         t = Ts[i]
         P[:,3] = t
 
-        P = Ks[i] @ P
+        P = Ks[0] @ P
         
-        reproj_error = [0,0] # total reporjection error
+        
 
         for j in range(0,N,1):
-            augmented_3d = np.hstack((points_3d[j,:],np.array([1])))
+            # print(points_3d[j,:])
+            augmented_3d = np.hstack([points_3d[j,:].T,1])
             # print(augmented_3d)
             augmented_2d = P @ augmented_3d
             reproj[i,j,:] = augmented_2d[0:2]/augmented_2d[2]
+            reproj_error += np.linalg.norm(reproj[i,j,:] - pts[i,j,:]) 
             
 
 
@@ -87,10 +92,9 @@ def visualize_reprojection(images, pts, points_3d, Rs, Ts, Ks):
     # print(reproj.shape)
     # vis_2d_lines(images, reproj)
     vis_2d(images, reproj)
+    print("Average Reprojection Error per frame: ", reproj_error/N)
 
-
-
-    # raise NotImplementedError
+    return reproj_error/N
 
 
 def vis_2d(images, juncs, lines=None):

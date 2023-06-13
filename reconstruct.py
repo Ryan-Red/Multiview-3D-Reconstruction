@@ -1,8 +1,14 @@
 import numpy as np
+from rpy_from_dcm import rpy_from_dcm
 
 cos = np.cos
 sin = np.sin
 pi = np.pi
+
+def skew(V):
+    return np.array([[    0, -V[2],  V[1]],
+                     [ V[2],     0, -V[0]],
+                     [-V[1],  V[0],  0]])
 
 def unskew(T):
     return np.array([T[2,1], T[0,2], T[1,0]]).T
@@ -26,8 +32,6 @@ def eight_point_algorithm(pts0, pts1, K):
         Ts (list): a list of possible translation matrices
     """
     N = pts0.shape[0] #Number of points
-    print(N)
-    # print(pts0)
 
     K_inv = np.linalg.inv(K)
 
@@ -44,19 +48,16 @@ def eight_point_algorithm(pts0, pts1, K):
     
     U, S, Vt = np.linalg.svd(A)
     
+    #Get the essential Matrix
     E_s = Vt[-1,:]
-  
-    print(E_s)
-
     E = np.reshape(E_s, (3,3))
-
-    print(E)
-   
 
     U, S, Vt = np.linalg.svd(E)
 
     Rs = []
     Ts = []
+
+    #Calculate the Rotation matrix and translation vector based on E
     combinations = [(pi/2, pi/2), (pi/2, -pi/2), (-pi/2, pi/2), (-pi/2, -pi/2)]
     for combos in combinations:
         print(combos)
@@ -71,9 +72,6 @@ def eight_point_algorithm(pts0, pts1, K):
 
     return Rs, Ts
 
-
-    
-    # raise NotImplementedError
 
 
 def triangulation(pts0, pts1, Rs, Ts, K):
@@ -113,9 +111,7 @@ def triangulation(pts0, pts1, Rs, Ts, K):
         t = Ts[j]
         
         P1[0:3,0:3] = R
-        # print(P2[:,2])
         P1[:,3] = t
-        print(P1)
         P1 = K @ P1 
         
         
@@ -139,16 +135,7 @@ def triangulation(pts0, pts1, Rs, Ts, K):
             pts = A_pseudo_inv @ b
             
          
-            test = P1 @ np.vstack((pts,np.array([1])))
-            test = test/ test[2]
-
-          
-            print("Result:\n",test )
-            print("expected:\n", pts1[i,:])
-            print("---"*40)
-            
             if(pts[2] < 0): # Z < 0, means this R and t are wrong.
-                # print(pts[2])
                 passed[j] += -1
                 break
 
@@ -167,7 +154,48 @@ def triangulation(pts0, pts1, Rs, Ts, K):
 
 
 
+def projection(pts0, pts1, R,t,K):
+
+    N = pts0.shape[0]
+    A = np.zeros((4,3))
+    b = np.zeros((4,1))
+
+    pts3d = np.zeros((N,3))
+    P0 = np.zeros((3,4))
+    P1 = np.zeros((3,4))
+
+    P0[0:3,0:3] = np.eye(3)
+
+    P0 = K @ P0
     
+    P1[0:3,0:3] = R
+    P1[:,3] = t
+    P1 = K @ P1 
+    
+    
+
+    for i in range(0,N,1):
+        x_i, y_i = pts0[i,:]
+        
+        A[0,:] = np.array([(P0[0,0] - P0[2,0] * x_i), (P0[0,1] - P0[2,1] * x_i), (P0[0,2] - P0[2,2] * x_i)])
+        A[1,:] = np.array([(P0[1,0] - P0[2,0] * y_i), (P0[1,1] - P0[2,1] * y_i), (P0[1,2] - P0[2,2] * y_i)])
+        b[0] = P0[2,3] * x_i - P0[0,3]
+        b[1] = P0[2,3] * y_i - P0[1,3]
+
+        x_i, y_i = pts1[i,:]
+        A[2,:] = np.array([(P1[0,0] - P1[2,0] * x_i), (P1[0,1] - P1[2,1] * x_i), (P1[0,2] - P1[2,2] * x_i)])
+        A[3,:] = np.array([(P1[1,0] - P1[2,0] * y_i), (P1[1,1] - P1[2,1] * y_i), (P1[1,2] - P1[2,2] * y_i)])
+        b[2] = P1[2,3] * x_i - P1[0,3]
+        b[3] = P1[2,3] * y_i - P1[1,3]
+    
+    
+        A_pseudo_inv = np.linalg.inv(A.T @ A) @ A.T
+        pts = A_pseudo_inv @ b
+        pts3d[i,:] = pts[0:3].T
+
+    return pts3d
+    
+
 
 
 def factorization_algorithm(pts, R, T, K):
@@ -194,7 +222,104 @@ def factorization_algorithm(pts, R, T, K):
     Rs = [np.eye(3), R]
     Ts = [np.zeros(3), T]
 
+    # pts3d = np.zeros((pts.shape[0],pts.shape[1],3))
+
     # Compute alpha^j from equation (21)
+
+    #Initial Estimate of alpha
+    alpha = np.zeros((pts.shape[1]))
+
+    for j in range(0,pts.shape[1]):
+        x_1 = np.hstack([pts[0,j,:],1])
+        x_2 = np.hstack([pts[1,j,:],1])
+        x_2_hat = skew(x_2)
+        x_2_hat_t = x_2_hat @ T
+
+        alpha[j] = - ((x_2_hat_t).T @ x_2_hat @ R @ x_1) / np.square(np.linalg.norm(x_2_hat_t))
+
+
+    alpha = alpha/alpha[0]    
+
+
+    print(alpha)
+    for w in range(0,20):
+        for i in range(2, pts.shape[0]): #For each camera
+            A = np.array([])
+            for j in range(0,pts.shape[1]): #For each point
+
+                x_1_1 = np.hstack([pts[0,j,:],1])
+                x_1_i = np.hstack([pts[i,j,:],1])
+                x_1_i_skew = skew(x_1_i)
+
+                kron = np.kron(x_1_1.T, x_1_i_skew)
+
+                if(j == 0):
+                    A = np.hstack([kron, alpha[j] * x_1_i_skew])
+                else:
+                    A = np.vstack([A,np.hstack([kron, alpha[j] * x_1_i_skew])])
+
+            U, S, Vt = np.linalg.svd(A)
+        
+            #Get the essential Matrix
+            R_s_t_s = Vt[-1,:]
+            R_s = R_s_t_s[0:9]
+            T_s = R_s_t_s[9:]
+            R_i_bar = np.reshape(R_s, (3,3))
+
+            Ui, Si, ViT = np.linalg.svd(R_i_bar)
+
+            prod = Ui @ ViT
+            sign = np.sign(np.linalg.det(Ui @ ViT))
+            R_i = sign * prod
+
+            T_i = sign/np.power(Si,1/3) * T_s
+
+
+
+            Rs.append(R_i)
+            Ts.append(T_i)
+
+            #update alpha
+            for j in range(2,pts.shape[1]):
+                x_j_1 = np.hstack([pts[0,j,:],1])
+                x_j_i = np.hstack([pts[i,j,:],1])
+                x_j_i_hat = skew(x_j_i)
+                x_j_i_hat_t = x_j_i_hat @ T
+
+                # alpha[j] = - (x_j_i_hat_t.T @ x_j_i_hat @ R @ x_j_1) / np.square(np.linalg.norm(x_j_i_hat_t)) + alpha[j]
+
+            # alpha = alpha/alpha[0]
+
+            #Get the reprojection error:
+
+            real_world_points = projection(pts[i - 1], pts[i], Rs[i], Ts[i], K)
+
+            
+        
+            N = real_world_points.shape[0]
+            P = np.zeros((3,4))
+            reproj = np.zeros((N,2))
+            reproj_error = 0 # total reprojection error
+    
+                
+            P[0:3,0:3] = Rs[i]
+
+            t = Ts[i]
+            P[:,3] = t
+
+            P = K @ P
+            
+
+            for j in range(0,N,1):
+                augmented_3d = np.hstack((real_world_points[j,:],np.array([1])))
+                # print(augmented_3d)
+                augmented_2d = P @ augmented_3d
+                reproj[j,:] = augmented_2d[0:2]/augmented_2d[2]
+                reproj_error += np.linalg.norm(reproj[j,:] - pts[i-1,j,:]) 
+
+            print(reproj_error)
+    pts3d = real_world_points
+    print(A.shape)
 
     # Normalize alpha^j = alpha^j / alpha^1
 
